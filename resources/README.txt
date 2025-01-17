@@ -4,7 +4,7 @@ my_new_benchmark = mgab.generate_benchmark({ # we choose a few parameters oursel
         'output_force_override': True, # Override files, if necessary
         'num_series': 1, # Create only 3 time series for this benchmark
         'series_length': 50_000, # Only create time series of lenth 10k
-        'num_anomalies' : 50, # Each time series contains 5 anomalies
+        'num_anomalies' : 50, # Each time series contains 50 anomalies
         'noise' : 'rnd_uniform',# Add random uniform noise
         'noise_param' : (-0.01, 0.01), # range for random uniform noise
         'anomaly_window': 25,
