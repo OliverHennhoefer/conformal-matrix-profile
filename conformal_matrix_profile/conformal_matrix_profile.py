@@ -1,5 +1,7 @@
-import scipy.stats as stats
+import numpy as np
+import pandas as pd
 
+from scipy.stats import genpareto
 from collections import deque
 
 from conformal_matrix_profile.similarity_search.mass_approx import mass_approx
@@ -47,8 +49,11 @@ class OnlineConformalMatrixProfile:
     def _compute_p_val(self, min_dist):
         sum_smaller = sum(self.l_matrix_prof >= min_dist)
         if sum_smaller == 0:
-            covered_prob = 1.0 / (1.0 + len(self.l_matrix_prof))
-            return covered_prob * stats.genpareto.pdf(
-                c=250.0, loc=max(self.l_matrix_prof), x=min_dist, scale=0.1
-            )
+            data = pd.Series(self.l_matrix_prof)
+            data = data.apply(lambda x: x.real)
+            threshold = data.nlargest(50).iloc[-1]  # 30 - 50
+            exceed = data[data >= threshold]
+            params = genpareto.fit(exceed - threshold, floc=0)
+            c, loc, scale = params
+            return genpareto.pdf((min_dist - threshold).real, c=c, loc=loc, scale=scale)
         return (1.0 + sum_smaller) / (1.0 + len(self.l_matrix_prof))
