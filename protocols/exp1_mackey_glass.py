@@ -2,6 +2,7 @@ import os
 import pandas as pd
 
 from datetime import datetime
+
 from data_streaming.datasets import BenchmarkDataset
 from data_streaming.streamer import CSVStreamer
 from multiple_testing.benjamini_yekutieli import BatchBY
@@ -15,22 +16,24 @@ if __name__ == "__main__":
     batch_by = BatchBY(alpha=0.2)
 
     damp = OnlineConformalMatrixProfile(
-        subseq_len=60, window_len=5_000, calib_size=5_000, pieces=2**12
+        subseq_len=60, window_len=5_000, calib_size=2_000, tail_frac=0.02, pieces=2**12  # tail_frac: [30, 50]
     )
+
+    warm_up_period = 9_999
+    batch_size = 25
+    results = [False] * warm_up_period
 
     estimates = []
     labels = []
+    batch = []
+
     for i, instance in enumerate(dataset):
         value = float(instance["value"])
-        label = int(instance["is_anomaly"])
         pred = damp.estimate_one(value)
         estimates.append(pred)
-        labels.append(label)
+        labels.append(int(instance["is_anomaly"]))
         damp.learn_one(value)
 
-    warm_up_period = 9_999
-    results = [False] * warm_up_period
-    batch_size = 25
     for i in range(warm_up_period, len(estimates), batch_size):
         batch = estimates[i : i + batch_size]
         result = batch_by.test_batch(batch)

@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 
 from scipy.stats import genpareto
@@ -13,15 +12,17 @@ class OnlineConformalMatrixProfile:
         subseq_len: int,
         window_len: int,
         calib_size: int,
+        tail_frac: float,
         pieces: int = 2**6,
     ):
         self.subseq_len: int = subseq_len
         self.window_len: int = window_len
         self.calib_size: int = calib_size
 
+        self.tail_fac: float = tail_frac
         self.pieces: int = pieces
-        self.warmed_up: bool = False
 
+        self.warmed_up: bool = False
         self.search_window: deque = deque(maxlen=self.window_len)
         self.l_matrix_prof: deque = deque(maxlen=self.calib_size)
 
@@ -51,9 +52,11 @@ class OnlineConformalMatrixProfile:
         if sum_smaller == 0:
             data = pd.Series(self.l_matrix_prof)
             data = data.apply(lambda x: x.real)
-            threshold = data.nlargest(50).iloc[-1]  # 30 - 50
+            frac = int(len(self.l_matrix_prof) * self.tail_fac)
+            threshold = data.nlargest(frac).iloc[-1]
             exceed = data[data >= threshold]
-            params = genpareto.fit(exceed - threshold, floc=0)
-            c, loc, scale = params
-            return genpareto.pdf((min_dist - threshold).real, c=c, loc=loc, scale=scale)
+            c, loc, scale = genpareto.fit(exceed - threshold, floc=0)
+            covered = 1.0 / (1.0 + len(self.l_matrix_prof))
+            pareto_p = genpareto.pdf((min_dist - threshold).real, c=c, loc=loc, scale=scale)
+            return covered * pareto_p
         return (1.0 + sum_smaller) / (1.0 + len(self.l_matrix_prof))
