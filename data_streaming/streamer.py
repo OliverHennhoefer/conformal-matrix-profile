@@ -13,11 +13,13 @@ class CSVStreamer(BaseStreamer):
     def __init__(self, dataset: BenchmarkDataset):
         self.file_path: str = dataset.value
 
-    def __iter__(self):
+    def __iter__(self) -> (float, int):
         with open(self.file_path, "r", newline="") as csvfile:
             csv_reader = csv.DictReader(csvfile)
             for row in csv_reader:
-                yield row
+                value = float(row["value"])
+                label = int(row["is_anomaly"])
+                yield value, label
 
 
 class TXTStreamer(BaseStreamer):
